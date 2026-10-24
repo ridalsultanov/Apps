@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f6f5ef">
+<meta name="description" content="Семейная коллекция браузерных игр и приложений. Мира и Лунный лес — волшебное приключение маленького той-пуделя.">
+<title>Apps — игры и приложения</title>
+<style>
+:root{color-scheme:light;--ink:#23392e;--muted:#626d63;--paper:#f6f5ef;--green:#234d39}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;line-height:1.55}
+main{max-width:1040px;margin:auto;padding:58px 24px 40px}.brand{font-weight:700;letter-spacing:.18em;font-size:13px}.eyebrow{font-size:12px;text-transform:uppercase;letter-spacing:.16em;font-weight:600}
+header{padding:56px 0 36px}h1{font-size:clamp(36px,6vw,64px);letter-spacing:-.045em;line-height:1.08;margin:0 0 20px;font-weight:650}header p{max-width:530px;font-size:18px;color:var(--muted);margin:0}
+.card{display:grid;grid-template-columns:1fr 1.08fr;border:1px solid #dde1d5;border-radius:28px;overflow:hidden;background:#fff}
+.art{position:relative;min-height:340px;display:grid;place-items:center;background:radial-gradient(ellipse at 55% 30%,#537950 0,#264c39 48%,#15372d 100%);overflow:hidden}
+.art:before,.art:after{content:"";position:absolute;border-radius:50%;width:400px;height:180px;bottom:-110px;background:#3b6442;transform:rotate(-12deg)}.art:after{left:-150px;bottom:-90px;background:#1d4436;transform:rotate(17deg)}
+.moon{position:absolute;top:35px;right:45px;width:66px;height:66px;border-radius:50%;background:#f2e7b3;box-shadow:0 0 60px #f2e7b340}
+.spark{position:absolute;color:#f2e7b3;font-size:20px}.s1{left:18%;top:20%}.s2{left:24%;bottom:27%;font-size:12px}.s3{right:18%;bottom:23%}
+.dog{font-size:110px;filter:drop-shadow(0 15px 10px #102c2a50);z-index:1;line-height:1}.art-label{position:absolute;bottom:26px;left:28px;color:#ecf1d7;font-size:11px;letter-spacing:.18em;text-transform:uppercase;z-index:2}
+.content{padding:42px 40px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center}.content .eyebrow{color:#667c53}
+h2{font-size:34px;letter-spacing:-.035em;line-height:1.16;margin:12px 0 16px}.description{color:var(--muted);margin:0 0 22px;font-size:16px}
+.tags{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:28px}.tags span{border:1px solid #e2e6db;border-radius:100px;font-size:12px;padding:5px 10px;color:#52614e}
+.play{display:inline-flex;align-items:center;justify-content:center;gap:25px;background:var(--green);color:white;border-radius:12px;text-decoration:none;padding:14px 22px;font-size:16px;font-weight:600;min-height:52px}.play:hover{background:#326349}.play:focus-visible{outline:3px solid #b18832;outline-offset:4px}.play span{font-size:20px;line-height:1}
+.note{font-size:13px;color:var(--muted);margin:16px 0 0}footer{margin-top:32px;font-size:13px;color:var(--muted);display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
+@media(max-width:650px){main{padding:28px 18px 32px}header{padding:38px 0 28px}header p{font-size:16px}.card{grid-template-columns:1fr;border-radius:22px}.art{min-height:230px}.dog{font-size:85px}.moon{width:52px;height:52px;right:34px;top:26px}.content{padding:28px 24px}h2{font-size:30px}.play{width:100%}.tags{margin-bottom:22px}}
+</style>
+</head>
+<body>
+<main>
+<div class="brand">APPS / СЕМЕЙНАЯ КОЛЛЕКЦИЯ</div>
+<header><h1>Маленькие миры.<br>Большие приключения.</h1><p>Игры и приложения, которые всегда под рукой. Открывай в браузере и начинай.</p></header>
+<section aria-label="Игры и приложения">
+<article class="card">
+<div class="art" role="img" aria-label="Маленький пудель в волшебном лесу при лунном свете">
+<div class="moon"></div><span class="spark s1">✦</span><span class="spark s2">✧</span><span class="spark s3">✦</span><div class="dog" aria-hidden="true">🐩</div><div class="art-label">Приключение начинается здесь</div>
+</div>
+<div class="content">
+<div class="eyebrow">Волшебное приключение</div>
+<h2>Мира и Лунный лес</h2>
+<p class="description">Маленький той-пудель с большой храбростью. Изучай магию, находи тайные проходы и спасай животных в трёх главах приключения.</p>
+<div class="tags"><span>3 главы</span><span>Магия и боссы</span><span>Сенсорное управление</span></div>
+<a class="play" href="./mira/">Играть <span aria-hidden="true">→</span></a>
+<p class="note">На iPhone открывай в Safari. Прогресс сохраняется в этом браузере.</p>
+</div>
+</article>
+</section>
+<footer><span>Создано для наших приключений.</span><span>Без установки · В браузере</span></footer>
+</main>
+</body>
+</html>
