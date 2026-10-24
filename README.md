@@ -4,6 +4,7 @@
 
 - Каталог: https://ridalsultanov.github.io/Apps/
 - Мира и Лунный лес: https://ridalsultanov.github.io/Apps/mira/
+- Стальной рейд (кооператив на двоих): https://ridalsultanov.github.io/Apps/raid/
 
 Эти адреса доступны после включения GitHub Pages.
 
@@ -24,8 +25,13 @@
 ├── index.html       # Каталог приложений
 ├── .nojekyll        # Статическая публикация без Jekyll
 ├── README.md
-└── mira/
-    └── index.html   # Самостоятельная игра со встроенными ресурсами
+├── mira/
+│   └── index.html   # Самостоятельная игра со встроенными ресурсами
+└── raid/
+    ├── index.html   # Стальной рейд: страница, лобби, сенсорные кнопки
+    ├── game.js      # Движок, уровни, боссы, звук, сеть
+    ├── peerjs.min.js # PeerJS 1.5.4 для связи двух телефонов
+    └── icon.png     # Иконка для экрана «Домой»
 ```
 
 ## Как добавить приложение

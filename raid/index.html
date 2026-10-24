@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Стальной рейд">
+<meta name="theme-color" content="#07060c">
+<meta name="description" content="Кооперативный боевик в духе Contra на двоих: два айфона, три уровня, боссы и улучшения.">
+<title>Стальной рейд</title>
+<link rel="apple-touch-icon" href="./icon.png">
+<link rel="icon" href="./icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@500;700&family=Russo+One&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#07060c; --ink:#e8eef8; --muted:#8a90a8; --cyan:#3ff0ff; --pink:#ff3fb4; --amber:#ffd04a; --green:#5dff7a;
+  --panel:rgba(10,8,22,.9); --line:rgba(255,255,255,.16);
+  --px:"Exo 2","Trebuchet MS",sans-serif; --disp:"Russo One","Arial Black",sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);overscroll-behavior:none}
+body{font-family:var(--px);overflow:hidden;position:fixed;inset:0;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+#shell{position:absolute;inset:0;padding:max(8px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
+body.touch #shell{padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);touch-action:none}
+#wrap{width:100%;height:100%;display:grid;place-items:center}
+canvas{display:block;image-rendering:pixelated;image-rendering:crisp-edges;background:#000;box-shadow:0 0 0 1px rgba(255,255,255,.06),0 20px 60px rgba(0,0,0,.6)}
+button{font-family:var(--px);cursor:pointer}
+button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+
+#tools{position:fixed;top:max(10px,env(safe-area-inset-top));right:max(16px,env(safe-area-inset-right));left:max(16px,env(safe-area-inset-left));display:flex;justify-content:space-between;gap:8px;z-index:7;pointer-events:none}
+#tools>*{pointer-events:auto}
+#tools .grp{display:flex;gap:8px}
+.chip{font:600 12px var(--px);color:var(--ink);background:rgba(10,8,22,.7);border:1px solid var(--line);border-radius:4px;padding:6px 10px;text-decoration:none;letter-spacing:.03em}
+.chip:hover{border-color:var(--cyan)}
+body.ingame #tools{display:none}
+
+#lobby{position:fixed;left:50%;bottom:max(14px,env(safe-area-inset-bottom));transform:translateX(-50%);z-index:6;width:min(600px,calc(100% - 32px))}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px;display:flex;flex-direction:column;gap:8px;box-shadow:0 10px 40px rgba(0,0,0,.5)}
+#lb-main{flex-direction:row;flex-wrap:wrap;justify-content:center;align-items:center}
+#lb-main .row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;width:100%}
+.big{font:600 15px var(--px);color:#fff;background:#151229;border:2px solid var(--line);border-radius:4px;padding:10px 16px;min-height:46px;flex:1 1 150px;letter-spacing:.03em}
+.big:active{transform:translateY(1px)}
+.big.c1{border-color:rgba(63,240,255,.7);box-shadow:inset 0 -3px 0 rgba(63,240,255,.25)}
+.big.c2{border-color:rgba(255,63,180,.7);box-shadow:inset 0 -3px 0 rgba(255,63,180,.25)}
+.big.c3{border-color:rgba(255,208,74,.7);box-shadow:inset 0 -3px 0 rgba(255,208,74,.25)}
+.ghost{font:600 13px var(--px);color:var(--muted);background:transparent;border:1px solid var(--line);border-radius:4px;padding:8px 12px;align-self:center}
+.hint{margin:0;font-size:12px;color:var(--muted);text-align:center;line-height:1.4}
+.status{margin:0;font-size:13px;color:var(--amber);text-align:center;min-height:1.2em}
+.code{font:40px var(--disp);letter-spacing:.3em;text-align:center;color:#fff;text-shadow:0 2px 0 var(--pink)}
+.lbl{margin:0;font-size:12px;color:var(--muted);text-align:center;letter-spacing:.1em;text-transform:uppercase}
+.joinrow{display:flex;gap:8px;align-items:stretch}
+#join-code{font:28px var(--disp);letter-spacing:.3em;text-align:center;width:9ch;flex:0 0 auto;background:#0d0b1c;color:#fff;border:2px solid var(--line);border-radius:4px;padding:4px 8px;-webkit-user-select:text;user-select:text}
+#join-code:focus{border-color:var(--cyan);outline:none}
+
+#touch{position:fixed;inset:0;pointer-events:none;z-index:5}
+#touch>*{pointer-events:auto;position:absolute;touch-action:none}
+#tpad{left:calc(env(safe-area-inset-left) + 16px);bottom:calc(env(safe-area-inset-bottom) + 12px);width:136px;height:136px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.07),rgba(255,255,255,.02) 70%);border:2px solid rgba(255,255,255,.16)}
+#tknob{position:absolute;left:50%;top:50%;width:56px;height:56px;margin:-28px 0 0 -28px;border-radius:50%;background:rgba(63,240,255,.28);border:2px solid rgba(160,250,255,.55);pointer-events:none}
+.tb{border-radius:50%;border:2px solid rgba(255,255,255,.3);background:rgba(255,255,255,.06);color:rgba(255,255,255,.9);font:600 11px var(--px);display:grid;place-items:center;letter-spacing:.04em;padding:0}
+.tb.on{background:rgba(255,255,255,.32)}
+#k-jump{right:calc(env(safe-area-inset-right) + 14px);bottom:calc(env(safe-area-inset-bottom) + 14px);width:76px;height:76px;border-color:rgba(93,255,122,.7)}
+#k-fire{right:calc(env(safe-area-inset-right) + 100px);bottom:calc(env(safe-area-inset-bottom) + 8px);width:70px;height:70px;border-color:rgba(255,106,213,.7)}
+#k-dash{right:calc(env(safe-area-inset-right) + 22px);bottom:calc(env(safe-area-inset-bottom) + 102px);width:60px;height:60px;border-color:rgba(255,208,74,.75)}
+#k-sup{right:calc(env(safe-area-inset-right) + 104px);bottom:calc(env(safe-area-inset-bottom) + 90px);width:54px;height:54px;border-color:rgba(63,240,255,.75)}
+#ttop{top:calc(env(safe-area-inset-top) + 40px);left:50%;transform:translateX(-50%);display:flex;gap:6px}
+.pill{font:600 11px var(--px);color:#fff;background:rgba(10,8,22,.55);border:1px solid var(--line);border-radius:4px;padding:5px 9px;min-height:30px}
+.pill.on{border-color:var(--green);color:var(--green)}
+body:not(.st-play) #ttop{display:none}
+
+#rotate{position:fixed;inset:0;z-index:30;background:var(--bg);display:none;place-items:center;text-align:center;padding:24px}
+#rotate div{font:20px var(--disp);line-height:1.4}
+#rotate p{color:var(--muted);font-size:14px}
+@media (orientation:portrait){ body.touch #rotate{display:grid} }
+@media (prefers-reduced-motion:reduce){ .big:active{transform:none} }
+</style>
+</head>
+<body>
+<div id="shell"><div id="wrap"><canvas id="screen" aria-label="Игровой экран"></canvas></div></div>
+
+<div id="tools">
+  <a class="chip" href="../">← Все игры</a>
+  <div class="grp">
+    <button class="chip" id="b-sound" type="button" aria-pressed="true">Звук: вкл</button>
+    <button class="chip" id="b-full" type="button">Во весь экран</button>
+  </div>
+</div>
+
+<div id="lobby" hidden>
+  <div class="panel" id="lb-main">
+    <div class="row">
+      <button class="big c1" id="b-host" type="button">Создать игру на двоих</button>
+      <button class="big c2" id="b-join" type="button">Присоединиться</button>
+      <button class="big c3" id="b-solo" type="button">Один игрок</button>
+    </div>
+    <p class="hint">Два телефона: один создаёт игру, второй вводит код. Лучше в одной сети Wi-Fi.</p>
+  </div>
+  <div class="panel" id="lb-host" hidden>
+    <p class="lbl">Код игры</p>
+    <div class="code" id="host-code">····</div>
+    <p class="status" id="host-status" role="status">Подключаюсь к серверу…</p>
+    <p class="hint">На втором телефоне: «Присоединиться» и этот код.</p>
+    <button class="ghost" id="b-host-cancel" type="button">Отмена</button>
+  </div>
+  <div class="panel" id="lb-join" hidden>
+    <p class="lbl"><label for="join-code">Код от первого телефона</label></p>
+    <div class="joinrow" style="justify-content:center">
+      <input id="join-code" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" enterkeyhint="go">
+      <button class="big c2" id="b-join-go" type="button" style="flex:0 1 200px">Подключиться</button>
+    </div>
+    <p class="status" id="join-status" role="status"></p>
+    <button class="ghost" id="b-join-cancel" type="button">Назад</button>
+  </div>
+</div>
+
+<div id="touch" hidden>
+  <div id="tpad"><div id="tknob"></div></div>
+  <button class="tb" id="k-jump" data-btn="jump" type="button">ПРЫЖОК</button>
+  <button class="tb" id="k-fire" data-btn="fire" type="button">ОГОНЬ</button>
+  <button class="tb" id="k-dash" data-btn="dash" type="button">РЫВОК</button>
+  <button class="tb" id="k-sup" data-btn="sup" type="button">СУПЕР</button>
+  <div id="ttop">
+    <button class="pill" data-btn="start" type="button">ПАУЗА</button>
+    <button class="pill" id="t-auto" type="button">АВТО</button>
+    <button class="pill" id="t-sound" type="button">♪</button>
+  </div>
+</div>
+
+<div id="rotate"><div>Поверни телефон<br>горизонтально</div><p>Игра работает в альбомной ориентации</p></div>
+
+<script src="./peerjs.min.js"></script>
+<script src="./game.js"></script>
+</body>
+</html>

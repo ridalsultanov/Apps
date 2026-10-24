@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#f6f5ef">
-<meta name="description" content="Семейная коллекция браузерных игр и приложений. Мира и Лунный лес — волшебное приключение маленького той-пуделя.">
+<meta name="description" content="Семейная коллекция браузерных игр и приложений: «Мира и Лунный лес» и кооперативный боевик «Стальной рейд».">
 <title>Apps — игры и приложения</title>
 <style>
 :root{color-scheme:light;--ink:#23392e;--muted:#626d63;--paper:#f6f5ef;--green:#234d39}
@@ -22,6 +22,13 @@ h2{font-size:34px;letter-spacing:-.035em;line-height:1.16;margin:12px 0 16px}.de
 .tags{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:28px}.tags span{border:1px solid #e2e6db;border-radius:100px;font-size:12px;padding:5px 10px;color:#52614e}
 .play{display:inline-flex;align-items:center;justify-content:center;gap:25px;background:var(--green);color:white;border-radius:12px;text-decoration:none;padding:14px 22px;font-size:16px;font-weight:600;min-height:52px}.play:hover{background:#326349}.play:focus-visible{outline:3px solid #b18832;outline-offset:4px}.play span{font-size:20px;line-height:1}
 .note{font-size:13px;color:var(--muted);margin:16px 0 0}footer{margin-top:32px;font-size:13px;color:var(--muted);display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.games{display:grid;gap:22px}
+.raid .art{background:linear-gradient(180deg,#1d1030 0%,#5a2348 46%,#c4533a 78%,#f4a259 100%)}
+.raid .art:before,.raid .art:after{display:none}
+.raid .sun{position:absolute;width:110px;height:110px;border-radius:50%;right:9%;top:9%;background:linear-gradient(#ffe08a,#ff6a3a);-webkit-mask:repeating-linear-gradient(180deg,#000 0 52%,transparent 52% 56%,#000 56% 63%,transparent 63% 68%,#000 68% 76%,transparent 76% 82%,#000 82% 100%);mask:repeating-linear-gradient(180deg,#000 0 52%,transparent 52% 56%,#000 56% 63%,transparent 63% 68%,#000 68% 76%,transparent 76% 82%,#000 82% 100%)}
+.raid .ground{position:absolute;left:0;right:0;bottom:0;height:64px;background:repeating-linear-gradient(90deg,#5c2e24 0 30px,#3b1b17 30px 32px);border-top:6px solid #b8632f}
+.raid .title{position:relative;z-index:1;font:900 clamp(30px,4.2vw,46px)/.95 "Arial Black",Impact,sans-serif;text-align:center;letter-spacing:.02em;color:#e8f6ff;background:linear-gradient(180deg,#fff 0,#9fd8ff 45%,#28466e 50%,#e8f6ff 62%,#7aa8d8 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 3px 0 #ff3fb4)}
+.raid .content .eyebrow{color:#b0476a}.raid .play{background:#2a1f4a}.raid .play:hover{background:#3b2c66}
 @media(max-width:650px){main{padding:28px 18px 32px}header{padding:38px 0 28px}header p{font-size:16px}.card{grid-template-columns:1fr;border-radius:22px}.art{min-height:230px}.dog{font-size:85px}.moon{width:52px;height:52px;right:34px;top:26px}.content{padding:28px 24px}h2{font-size:30px}.play{width:100%}.tags{margin-bottom:22px}}
 </style>
 </head>
@@ -29,7 +36,7 @@ h2{font-size:34px;letter-spacing:-.035em;line-height:1.16;margin:12px 0 16px}.de
 <main>
 <div class="brand">APPS / СЕМЕЙНАЯ КОЛЛЕКЦИЯ</div>
 <header><h1>Маленькие миры.<br>Большие приключения.</h1><p>Игры и приложения, которые всегда под рукой. Открывай в браузере и начинай.</p></header>
-<section aria-label="Игры и приложения">
+<section class="games" aria-label="Игры и приложения">
 <article class="card">
 <div class="art" role="img" aria-label="Маленький пудель в волшебном лесу при лунном свете">
 <div class="moon"></div><span class="spark s1">✦</span><span class="spark s2">✧</span><span class="spark s3">✦</span><div class="dog" aria-hidden="true">🐩</div><div class="art-label">Приключение начинается здесь</div>
@@ -41,6 +48,19 @@ h2{font-size:34px;letter-spacing:-.035em;line-height:1.16;margin:12px 0 16px}.de
 <div class="tags"><span>3 главы</span><span>Магия и боссы</span><span>Сенсорное управление</span></div>
 <a class="play" href="./mira/">Играть <span aria-hidden="true">→</span></a>
 <p class="note">На iPhone открывай в Safari. Прогресс сохраняется в этом браузере.</p>
+</div>
+</article>
+<article class="card raid">
+<div class="art" role="img" aria-label="Закатное небо и неоновый заголовок «Стальной рейд»">
+<div class="sun"></div><div class="ground"></div><div class="title">СТАЛЬНОЙ<br>РЕЙД</div><div class="art-label">Кооператив на двоих</div>
+</div>
+<div class="content">
+<div class="eyebrow">Боевик в духе Contra</div>
+<h2>Стальной рейд</h2>
+<p class="description">Два бойца против армии машин. Беги, стреляй в восемь сторон, поднимай напарника и выбирай улучшения между уровнями.</p>
+<div class="tags"><span>3 уровня и 3 босса</span><span>Два айфона по коду</span><span>Геймпады и клавиатура</span></div>
+<a class="play" href="./raid/">Играть <span aria-hidden="true">→</span></a>
+<p class="note">Один телефон создаёт игру, второй вводит код. Лучше в одной сети Wi-Fi.</p>
 </div>
 </article>
 </section>
