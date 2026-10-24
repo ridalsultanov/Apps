@@ -1426,46 +1426,112 @@ const NET = { mode: 'local', peer: null, conn: null, connected: false, snapAcc: 
 const REM = { held: {}, cnt: {}, last: {}, q: [], ack: 0 };
 BTN.forEach(n => { NET.gcnt[n] = 0; REM.cnt[n] = 0; REM.last[n] = 0; });
 const PEER_PREFIX = 'steelraid-v1-';
+// Соединение: сначала напрямую (WebRTC через PeerJS, с запасным TURN-ретранслятором),
+// а если напрямую не выходит — через публичный MQTT-ретранслятор по интернету.
+const RELAY_BROKERS = ['wss://broker.emqx.io:8084/mqtt', 'wss://broker.hivemq.com:8884/mqtt'];
+const mqttLib = () => window.mqtt && (window.mqtt.connect ? window.mqtt : window.mqtt.default);
 function netClose() {
   const c = NET.conn, p = NET.peer;
   NET.conn = null; NET.peer = null; NET.connected = false;
   try { c && c.close(); } catch (e) { }
   try { p && p.destroy(); } catch (e) { }
+  for (const cl of (NET.relays || []).concat(NET.grelay || [])) { try { cl.end(true); } catch (e) { } }
+  NET.relays = null; NET.grelay = null;
 }
 function peerOk() { return typeof window.Peer === 'function'; }
-function hostGame() {
-  if (!peerOk()) { setStatus('host', 'Не загрузилась сетевая библиотека. Обнови страницу.'); return; }
-  netClose(); NET.mode = 'host';
+async function iceConfig() {
+  const servers = [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }];
+  try {
+    const user = (Math.floor(Date.now() / 1000) + 24 * 3600) + ':steelraid', enc = new TextEncoder();
+    const key = await crypto.subtle.importKey('raw', enc.encode('openrelayprojectsecret'), { name: 'HMAC', hash: 'SHA-1' }, false, ['sign']);
+    const sig = new Uint8Array(await crypto.subtle.sign('HMAC', key, enc.encode(user)));
+    let bin = ''; for (const x of sig) bin += String.fromCharCode(x);
+    servers.push({ urls: ['turn:staticauth.openrelay.metered.ca:80', 'turn:staticauth.openrelay.metered.ca:80?transport=tcp', 'turn:staticauth.openrelay.metered.ca:443', 'turns:staticauth.openrelay.metered.ca:443?transport=tcp'], username: user, credential: btoa(bin) });
+  } catch (e) { }
+  return { iceServers: servers };
+}
+const relayTopic = (code, dir) => 'steelraid/v2/' + code + '/' + dir;
+const relayText = buf => typeof buf === 'string' ? buf : (buf && buf.toString && !(buf instanceof Uint8Array && buf.constructor === Uint8Array) ? buf.toString() : new TextDecoder().decode(buf));
+function relayClient(url) {
+  const M = mqttLib(); if (!M) return null;
+  try { return M.connect(url, { clientId: 'sr' + Math.random().toString(16).slice(2, 10), clean: true, connectTimeout: 7000, reconnectPeriod: 2500, keepalive: 20 }); } catch (e) { return null; }
+}
+function makeRelayConn(client, pub) {
+  const ls = {};
+  const c = {
+    relay: true, open: true, client,
+    on(n, f) { (ls[n] = ls[n] || []).push(f); return c; },
+    emit(n, a) { (ls[n] || []).slice().forEach(f => f(a)); },
+    send(d) { if (c.open) { try { client.publish(pub, JSON.stringify(d), { qos: 0 }); } catch (e) { } } },
+    close() { if (!c.open) return; c.open = false; try { client.publish(pub, '{"t":"bye"}', { qos: 0 }); } catch (e) { } c.emit('close'); },
+  };
+  return c;
+}
+async function hostGame() {
+  if (!peerOk() && !mqttLib()) { setStatus('host', 'Не загрузились сетевые библиотеки. Обнови страницу.'); return; }
+  netClose(); NET.mode = 'host'; NET.gen = (NET.gen || 0) + 1; const gen = NET.gen;
   const code = String(rint(1000, 9999)); NET.code = code;
   document.getElementById('host-code').textContent = code;
   setStatus('host', 'Подключаюсь к серверу…');
-  const peer = new window.Peer(PEER_PREFIX + code, { debug: 0 });
+  startHostRelay(code, gen);
+  if (!peerOk()) return;
+  const config = await iceConfig(); if (NET.gen !== gen) return;
+  const peer = new window.Peer(PEER_PREFIX + code, { debug: 0, config });
   NET.peer = peer;
-  peer.on('open', () => setStatus('host', 'Ждём второго игрока…'));
+  peer.on('open', () => { if (!NET.connected) setStatus('host', 'Ждём второго игрока…'); });
   peer.on('error', err => {
+    if (NET.peer !== peer) return;
     if (err && err.type === 'unavailable-id') { hostGame(); return; }
     if (err && err.type === 'peer-unavailable') return;
-    setStatus('host', 'Ошибка связи: ' + (err && err.type || 'неизвестно') + '. Попробуй ещё раз.');
+    if (!NET.connected) setStatus('host', 'Основной сервер не отвечает, работает запасной канал. Можно подключаться.');
   });
   peer.on('disconnected', () => { try { peer.reconnect(); } catch (e) { } });
   peer.on('connection', conn => {
-    if (NET.conn && NET.connected) { conn.on('open', () => conn.close()); return; }
-    NET.conn = conn;
-    conn.on('open', () => {
-      NET.connected = true; NET.lastRecv = performance.now();
-      BTN.forEach(n => { REM.cnt[n] = 0; REM.last[n] = 0; REM.held[n] = false; });
-      REM.q = []; REM.ack = 0; G.awayGuest = false;
-      showLobby(false); G.sel.p2 = true; sfx('confirm');
-      if (G.state === 'title') goSelect();
-      else if (G.state === 'play') {
-        if (G.p2Wait) { G.p2Wait = false; joinMid(G.players[1]); }
-        else if (!G.players[1].active) ftext(G.cam.x + W / 2, 90, 'ИСКРА НА СВЯЗИ — ЖМИ ОГОНЬ', '#ffd04a', 9);
-      }
-    });
-    conn.on('data', d => { if (NET.conn === conn) onHostData(d); });
-    conn.on('close', () => { if (NET.conn === conn) hostLostGuest(); });
-    conn.on('error', () => { if (NET.conn === conn) hostLostGuest(); });
+    if (!NET.connected) setStatus('host', 'Второй телефон нашёлся, соединяемся…');
+    conn.on('open', () => hostAccept(conn));
   });
+}
+function startHostRelay(code, gen) {
+  if (!mqttLib()) return;
+  NET.relays = [];
+  for (const url of RELAY_BROKERS) {
+    const cl = relayClient(url); if (!cl) continue;
+    NET.relays.push(cl);
+    cl.on('connect', () => { try { cl.subscribe(relayTopic(code, 'g2h')); } catch (e) { } });
+    cl.on('message', (topic, buf) => {
+      if (NET.gen !== gen) return;
+      let d; try { d = JSON.parse(relayText(buf)); } catch (e) { return; }
+      if (d.t === 'join') {
+        const cur = NET.conn;
+        if (NET.connected && cur && !cur.relay) return;
+        if (NET.connected && cur && cur.relay && cur.sid === d.sid) { if (cur.client === cl) cur.send({ t: 'welcome', sid: d.sid }); return; }
+        if (NET.connected && cur && cur.relay) { cur.open = false; NET.connected = false; NET.conn = null; }
+        const c = makeRelayConn(cl, relayTopic(code, 'h2g')); c.sid = d.sid; cl._rc = c;
+        c.send({ t: 'welcome', sid: d.sid });
+        hostAccept(c);
+        return;
+      }
+      const c = cl._rc; if (!c || !c.open || NET.conn !== c) return;
+      if (d.t === 'bye') { c.open = false; c.emit('close'); return; }
+      c.emit('data', d);
+    });
+  }
+}
+function hostAccept(conn) {
+  if (NET.conn && NET.connected && NET.conn !== conn) { try { conn.close(); } catch (e) { } return; }
+  NET.conn = conn; NET.connected = true; NET.lastRecv = performance.now();
+  BTN.forEach(n => { REM.cnt[n] = 0; REM.last[n] = 0; REM.held[n] = false; });
+  REM.q = []; REM.ack = 0; G.awayGuest = false;
+  try { conn.send({ t: 'hi', v: 2 }); } catch (e) { }
+  showLobby(false); G.sel.p2 = true; sfx('confirm');
+  if (G.state === 'title') goSelect();
+  else if (G.state === 'play') {
+    if (G.p2Wait) { G.p2Wait = false; joinMid(G.players[1]); }
+    else if (!G.players[1].active) ftext(G.cam.x + W / 2, 90, 'ИСКРА НА СВЯЗИ — ЖМИ ОГОНЬ', '#ffd04a', 9);
+  }
+  conn.on('data', d => { if (NET.conn === conn) onHostData(d); });
+  conn.on('close', () => { if (NET.conn === conn) hostLostGuest(); });
+  conn.on('error', () => { if (NET.conn === conn) hostLostGuest(); });
 }
 function hostLostGuest() {
   if (!NET.connected && !NET.conn) return;
@@ -1492,37 +1558,66 @@ function remoteIn() {
   for (const n of BTN) { const cn = REM.cnt[n], ln = REM.last[n]; p[n] = cn !== ln && NET.connected; REM.last[n] = cn; c[n] = NET.connected && (!!REM.held[n] || p[n]); }
   I.c = c; I.p = p; I.prev = c;
 }
-function joinGame(code, silent) {
-  if (!peerOk()) { setStatus('join', 'Не загрузилась сетевая библиотека. Обнови страницу.'); return; }
+async function joinGame(code, silent) {
+  if (!peerOk() && !mqttLib()) { setStatus('join', 'Не загрузились сетевые библиотеки. Обнови страницу.'); return; }
   if (!/^\d{4}$/.test(code)) { setStatus('join', 'Нужен код из 4 цифр.'); return; }
-  netClose(); NET.mode = 'guest'; NET.code = code;
-  if (!silent) setStatus('join', 'Ищу игру ' + code + '…');
-  const peer = new window.Peer({ debug: 0 }); NET.peer = peer;
-  let opened = false;
-  const fail = msg => { if (NET.mode !== 'guest' || NET.recon || NET.peer !== peer) return; setStatus('join', msg); netClose(); NET.mode = 'local'; };
-  const to = setTimeout(() => { if (!opened) fail('Не получилось найти игру. Проверь код и что телефоны в одной сети Wi-Fi.'); }, 12000);
-  peer.on('open', () => {
-    if (NET.peer !== peer) return;
-    const conn = peer.connect(PEER_PREFIX + code, { serialization: 'json', reliable: false });
-    NET.conn = conn;
-    conn.on('open', () => {
-      if (NET.conn !== conn) return;
-      opened = true; clearTimeout(to);
-      NET.connected = true; NET.lastRecv = performance.now(); NET.recon = null; NET.hostAway = false;
-      NET.seq = 0; BTN.forEach(n => { NET.gcnt[n] = 0; }); NET.gprev = {}; PR.p = null; PR.hist.length = 0;
-      showLobby(false); setStatus('join', '');
-      try { conn.send({ t: 'look', l: load('look', null) || { c: 1, h: 0 } }); } catch (e) { }
-    });
+  netClose(); NET.mode = 'guest'; NET.code = code; NET.gen = (NET.gen || 0) + 1; const gen = NET.gen;
+  if (!silent) setStatus('join', 'Подключаюсь к серверу…');
+  let opened = false, pendingRtc = null, notFoundT = null;
+  const succeed = conn => {
+    if (NET.gen !== gen || opened) { try { conn.close(); } catch (e) { } return; }
+    opened = true; clearTimeout(to); clearTimeout(relayT); clearTimeout(notFoundT);
+    NET.conn = conn; NET.connected = true; NET.lastRecv = performance.now(); NET.recon = null; NET.hostAway = false;
+    NET.seq = 0; BTN.forEach(n => { NET.gcnt[n] = 0; }); NET.gprev = {}; PR.p = null; PR.hist.length = 0;
+    showLobby(false); setStatus('join', '');
     conn.on('data', d => { if (NET.conn === conn) onGuestData(d); });
     conn.on('close', () => { if (NET.conn === conn) guestDrop(); });
     conn.on('error', () => { if (NET.conn === conn) guestDrop(); });
+    if (conn.relay) { if (pendingRtc) { try { pendingRtc.close(); } catch (e) { } } (NET.grelay || []).forEach(cl => { if (cl !== conn.client) { try { cl.end(true); } catch (e) { } } }); NET.grelay = [conn.client]; }
+    else { (NET.grelay || []).forEach(cl => { try { cl.end(true); } catch (e) { } }); NET.grelay = null; }
+    try { conn.send({ t: 'look', l: load('look', null) || { c: 1, h: 0 } }); } catch (e) { }
+  };
+  const fail = msg => { if (NET.mode !== 'guest' || NET.recon || NET.gen !== gen || opened) return; setStatus('join', msg); netClose(); NET.mode = 'local'; };
+  const to = setTimeout(() => fail('Не получилось соединиться. Проверь код и интернет на обоих телефонах. Первый телефон должен оставаться на экране с кодом.'), 30000);
+  const relayT = setTimeout(() => { if (!opened && NET.gen === gen) { if (!silent) setStatus('join', 'Напрямую не выходит, подключаюсь через ретранслятор…'); startGuestRelay(code, gen, succeed); } }, silent ? 800 : 7000);
+  if (!peerOk()) { startGuestRelay(code, gen, succeed); return; }
+  const config = await iceConfig(); if (NET.gen !== gen) return;
+  const peer = new window.Peer({ debug: 0, config }); NET.peer = peer;
+  peer.on('open', () => {
+    if (NET.gen !== gen || opened) return;
+    if (!silent) setStatus('join', 'Сервер найден, соединяюсь с первым телефоном…');
+    const conn = peer.connect(PEER_PREFIX + code, { serialization: 'json', reliable: false });
+    pendingRtc = conn;
+    conn.on('open', () => succeed(conn));
   });
   peer.on('error', err => {
-    if (NET.peer !== peer) return;
-    clearTimeout(to);
-    if (NET.recon) return;
-    fail(err && err.type === 'peer-unavailable' ? 'Игра с таким кодом не найдена. Проверь цифры.' : 'Ошибка связи: ' + (err && err.type || 'неизвестно') + '.');
+    if (NET.gen !== gen || opened) return;
+    startGuestRelay(code, gen, succeed);
+    if (err && err.type === 'peer-unavailable' && !notFoundT) {
+      if (!silent) setStatus('join', 'Ищу игру через ретранслятор…');
+      notFoundT = setTimeout(() => fail('Игра с кодом ' + code + ' не найдена. Проверь цифры и что первый телефон на экране с кодом.'), 9000);
+    }
   });
+}
+function startGuestRelay(code, gen, succeed) {
+  if (!mqttLib() || NET.grelay) return;
+  const sid = Math.random().toString(36).slice(2, 8);
+  NET.grelay = [];
+  for (const url of RELAY_BROKERS) {
+    const cl = relayClient(url); if (!cl) continue;
+    NET.grelay.push(cl);
+    let c = null;
+    const join = () => { try { cl.publish(relayTopic(code, 'g2h'), JSON.stringify({ t: 'join', sid }), { qos: 0 }); } catch (e) { } };
+    cl.on('connect', () => { try { cl.subscribe(relayTopic(code, 'h2g'), () => join()); } catch (e) { } });
+    const iv = setInterval(() => { if (c || NET.gen !== gen) { clearInterval(iv); return; } if (cl.connected) join(); }, 2000);
+    cl.on('message', (topic, buf) => {
+      let d; try { d = JSON.parse(relayText(buf)); } catch (e) { return; }
+      if (!c) { if (d.t === 'welcome' && d.sid === sid && NET.gen === gen) { c = makeRelayConn(cl, relayTopic(code, 'g2h')); c.sid = sid; succeed(c); } return; }
+      if (NET.conn !== c) return;
+      if (d.t === 'bye') { c.open = false; c.emit('close'); return; }
+      c.emit('data', d);
+    });
+  }
 }
 // связь оборвалась посреди игры: пробуем вернуться сами в течение минуты
 function guestDrop() {
@@ -1535,7 +1630,7 @@ function reconTick() {
   const R = NET.recon; if (!R) return;
   const now = performance.now();
   if (now > R.until) { NET.recon = null; guestLost('Связь с первым телефоном потеряна.'); return; }
-  if (now >= R.next) { R.next = now + 5000; joinGame(NET.code, true); }
+  if (now >= R.next) { R.next = now + 6000; joinGame(NET.code, true); }
 }
 function guestLost(msg) {
   if (NET.mode !== 'guest') return;
@@ -2397,7 +2492,7 @@ function step(dt) {
     case 'over': updOver(); break;
     case 'win': updWin(dt); break;
   }
-  if (NET.mode === 'host') { NET.snapAcc += dt; if (NET.snapAcc >= 1 / 30 - 0.001) { NET.snapAcc = 0; sendSnap(); } }
+  if (NET.mode === 'host') { NET.snapAcc += dt; const rate = NET.conn && NET.conn.relay ? 1 / 20 : 1 / 30; if (NET.snapAcc >= rate - 0.001) { NET.snapAcc = 0; sendSnap(); } }
   else netEvents = [];
   syncTouchUI();
 }
