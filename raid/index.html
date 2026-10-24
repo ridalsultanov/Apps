@@ -68,10 +68,22 @@ body.ingame #tools{display:none}
 #k-fire{right:calc(env(safe-area-inset-right) + 100px);bottom:calc(env(safe-area-inset-bottom) + 8px);width:70px;height:70px;border-color:rgba(255,106,213,.7)}
 #k-dash{right:calc(env(safe-area-inset-right) + 22px);bottom:calc(env(safe-area-inset-bottom) + 102px);width:60px;height:60px;border-color:rgba(255,208,74,.75)}
 #k-sup{right:calc(env(safe-area-inset-right) + 104px);bottom:calc(env(safe-area-inset-bottom) + 90px);width:54px;height:54px;border-color:rgba(63,240,255,.75)}
-#ttop{top:calc(env(safe-area-inset-top) + 40px);left:50%;transform:translateX(-50%);display:flex;gap:6px}
+#ttop{top:calc(env(safe-area-inset-top) + 72px);left:calc(env(safe-area-inset-left) + 10px);display:flex;flex-direction:column;align-items:flex-start;gap:6px}
 .pill{font:600 11px var(--px);color:#fff;background:rgba(10,8,22,.55);border:1px solid var(--line);border-radius:4px;padding:5px 9px;min-height:30px}
 .pill.on{border-color:var(--green);color:var(--green)}
 body:not(.st-play) #ttop{display:none}
+#tedit{position:fixed;top:calc(env(safe-area-inset-top) + 8px);left:50%;transform:translateX(-50%);z-index:9;width:min(380px,calc(100% - 32px));padding:10px}
+.editrow{display:flex;gap:8px;align-items:center;justify-content:center}
+.editrow label{font-size:13px;color:var(--muted)}
+#t-scale{flex:1;accent-color:var(--cyan)}
+#t-mirror.on{border-color:var(--green);color:var(--green)}
+body.editing #touch .tb,body.editing #tpad{outline:2px dashed var(--amber);outline-offset:3px}
+body.editing #ttop{display:none}
+#touch.mirror #tpad{left:auto;right:calc(env(safe-area-inset-right) + 16px)}
+#touch.mirror #k-jump{right:auto;left:calc(env(safe-area-inset-left) + 14px)}
+#touch.mirror #k-fire{right:auto;left:calc(env(safe-area-inset-left) + 100px)}
+#touch.mirror #k-dash{right:auto;left:calc(env(safe-area-inset-left) + 22px)}
+#touch.mirror #k-sup{right:auto;left:calc(env(safe-area-inset-left) + 104px)}
 
 #rotate{position:fixed;inset:0;z-index:30;background:var(--bg);display:none;place-items:center;text-align:center;padding:24px}
 #rotate div{font:20px var(--disp);line-height:1.4}
@@ -128,6 +140,20 @@ body:not(.st-play) #ttop{display:none}
     <button class="pill" data-btn="start" type="button">ПАУЗА</button>
     <button class="pill" id="t-auto" type="button">АВТО</button>
     <button class="pill" id="t-sound" type="button">♪</button>
+    <button class="pill" id="t-edit" type="button">КНОПКИ</button>
+  </div>
+</div>
+
+<div id="tedit" class="panel" hidden>
+  <p class="lbl">Перетащи кнопки пальцем</p>
+  <div class="editrow">
+    <label for="t-scale">Размер</label>
+    <input id="t-scale" type="range" min="0.7" max="1.4" step="0.05" value="1">
+  </div>
+  <div class="editrow">
+    <button class="ghost" id="t-mirror" type="button">Левша</button>
+    <button class="ghost" id="t-reset" type="button">Сбросить</button>
+    <button class="big c1" id="t-done" type="button" style="flex:0 0 auto;min-height:38px;padding:6px 16px">Готово</button>
   </div>
 </div>
 
